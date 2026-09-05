@@ -1,0 +1,2 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,"required":["intent","emotion","risk"],"properties":{"intent":{"enum":["CHAT","CONSULT","RISK"]},"emotion":{"enum":["NORMAL","ANXIETY","DEPRESSED","HIGH_RISK"]},"risk":{"enum":["LOW","MEDIUM","HIGH"]}}}
+

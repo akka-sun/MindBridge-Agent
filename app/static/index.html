@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MindBridge 校园心理智能体</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">MB</div>
+      <div>
+        <p class="eyebrow">MIND BRIDGE AGENT</p>
+        <h1>MindBridge 校园心理智能体</h1>
+      </div>
+    </div>
+    <div class="status-row">
+      <span id="serviceState" class="pill warn">连接中</span>
+      <span id="modelState" class="pill warn">模型读取中</span>
+      <div id="accountBadge" class="account" hidden>
+        <strong id="activeAccount">未登录</strong>
+        <span id="activeRole">访客</span>
+      </div>
+      <button id="switchAccount" class="dark-btn" type="button" hidden>切换</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <form id="loginForm" class="panel">
+        <p class="panel-label">LOGIN</p>
+        <h2>账号登录</h2>
+        <label>
+          <span>用户名</span>
+          <input id="username" value="student" autocomplete="username">
+        </label>
+        <label>
+          <span>密码</span>
+          <input id="password" value="student123" type="password" autocomplete="current-password">
+        </label>
+        <button class="primary full" type="submit">登录</button>
+        <p id="loginState" class="hint">学生：student / student123，管理员：admin / admin123</p>
+      </form>
+
+      <section class="panel">
+        <p class="panel-label">QUICK SIGNAL</p>
+        <button class="signal" type="button" data-quick="我最近压力很大，晚上总是睡不着。">压力失眠</button>
+        <button class="signal" type="button" data-quick="我感觉很焦虑，考试前完全静不下来。">焦虑倾诉</button>
+        <button class="signal" type="button" data-quick="我想问一个普通学习问题，Python 怎么读取 JSON？">普通聊天</button>
+      </section>
+
+      <section class="panel">
+        <p class="panel-label">AGENT LOOP</p>
+        <ol class="loop-list">
+          <li>MemoryAgent 记忆读取</li>
+          <li>SupervisorAgent 意图路由</li>
+          <li>KnowledgeAgent RAG 检索</li>
+          <li>RiskGuardianAgent 风险守护</li>
+          <li>Companion / Counselor 回复规划</li>
+          <li>SSE 流式输出</li>
+        </ol>
+      </section>
+    </aside>
+
+    <section id="studentView" class="workspace">
+      <section class="chat-panel">
+        <div class="chat-head">
+          <div>
+            <p class="panel-label">STUDENT CHAT</p>
+            <h2 id="chatTitle">心理陪伴对话</h2>
+          </div>
+          <span id="sessionBadge" class="pill">READY</span>
+        </div>
+        <div id="messages" class="messages">
+          <div class="empty">
+            <strong>从一段真实表达开始</strong>
+            <p>MindBridge 会先做意图路由，再按需进入 RAG、风险识别和咨询式回复链路。</p>
+          </div>
+        </div>
+        <form id="chatForm" class="composer">
+          <textarea id="messageInput" placeholder="写下你现在想说的话..." rows="3"></textarea>
+          <div class="composer-actions">
+            <button id="newSession" class="ghost" type="button">新会话</button>
+            <button id="sendButton" class="primary" type="submit">发送</button>
+          </div>
+        </form>
+      </section>
+    </section>
+
+    <section id="adminView" class="workspace" hidden>
+      <section class="admin-grid">
+        <div class="metric">
+          <span>报告数</span>
+          <strong id="metricReports">0</strong>
+        </div>
+        <div class="metric">
+          <span>高风险</span>
+          <strong id="metricHigh">0</strong>
+        </div>
+        <div class="metric">
+          <span>Excel 台账</span>
+          <strong id="metricExcel">0</strong>
+        </div>
+        <div class="metric">
+          <span>预警记录</span>
+          <strong id="metricAlerts">0</strong>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <p class="panel-label">KNOWLEDGE BASE</p>
+            <h2>RAG 知识库维护</h2>
+          </div>
+        </div>
+        <form id="knowledgeUploadForm" class="upload-row">
+          <input id="knowledgeFile" type="file" accept=".pdf,.md,.markdown,.txt,application/pdf,text/markdown,text/plain">
+          <button class="primary" type="submit">上传入库</button>
+          <span id="knowledgeUploadState" class="hint">支持 PDF、Markdown、txt 文件</span>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <p class="panel-label">REPORTS</p>
+            <h2>心理风险与咨询报告</h2>
+          </div>
+          <button id="refreshAdmin" class="ghost" type="button">刷新</button>
+        </div>
+        <div id="reports" class="reports"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

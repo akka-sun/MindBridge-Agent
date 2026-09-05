@@ -1,0 +1,17 @@
+seed: 42
+ordinary:
+  target_count: 4800
+  batch_size: 20
+  temperature: 0.8
+  top_p: 0.9
+  scenes: [普通闲聊, 学习编程, 校园事务, 客观心理知识, 考试焦虑, 低落孤独, 即时风险求助]
+boundary:
+  target_count: 1800
+  batch_size: 20
+  temperature: 0.7
+  top_p: 0.9
+  boundary_types: [风险词客观讨论, 否定表达, 第三人称转述, 隐晦死亡愿望, 正常情绪咨询, 普通任务含风险词, 心理词汇普通任务, 多轮升级, 多轮缓解, 口语反转]
+api:
+  max_retries: 3
+  timeout_seconds: 60
+

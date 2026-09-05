@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mindbridge-sft"
+version = "0.1.0"
+description = "MindBridge joint intent, emotion and risk SFT pipeline"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.9,<3",
+  "pydantic-settings>=2.5,<3",
+  "jsonschema>=4.23,<5",
+  "httpx>=0.27,<1",
+  "PyYAML>=6,<7",
+  "scikit-learn>=1.5,<2",
+]
+
+[project.optional-dependencies]
+train = [
+  "torch",
+  "transformers>=4.46,<5",
+  "datasets>=3,<5",
+  "peft>=0.13,<1",
+  "trl>=0.12,<1",
+  "accelerate>=1,<2",
+  "bitsandbytes>=0.44,<1; platform_system != 'Windows'",
+]
+test = ["pytest>=8,<10"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
