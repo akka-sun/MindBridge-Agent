@@ -37,7 +37,10 @@ def run_experiment(config: ExperimentConfig, index_path: Path, dataset_path: Pat
         hits = retriever.retrieve(case["question"], top_k=config.final_top_k, dense_candidates=config.dense_candidates, bm25_candidates=config.bm25_candidates, rerank_candidates=config.rerank_candidates, rewrite=config.query_rewrite_enabled, decompose=config.decomposition_enabled, strict=config.strict_mode)
         elapsed = (time.perf_counter() - started) * 1000
         ids = [item.document_id for item in hits]
-        expected = set(case.get("expectedSources", []))
+        # Retrieval quality is measured at chunk granularity.  Keep source-level
+        # fields only for analysis; they must not make a neighboring chunk count
+        # as a hit.
+        expected = set(case.get("expectedChunkIds", []))
         return {"id": case["id"], "question": case["question"], "retrieved": ids, "latency_ms": elapsed, "hit": bool(set(ids) & expected)}, ids, expected
     workers = min(8, max(1, int(__import__("os").environ.get("RAG_EXPERIMENT_WORKERS", "8"))))
     with ThreadPoolExecutor(max_workers=workers) as pool:

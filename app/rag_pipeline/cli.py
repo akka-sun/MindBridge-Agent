@@ -85,9 +85,25 @@ def main(argv=None) -> int:
         if len(chunks) < 300:
             raise SystemExit(f"need at least 300 chunks, got {len(chunks)}")
         rows = []
+        # Do not copy source text into questions: that creates lexical leakage.
+        # Questions deliberately require abstraction, application, comparison or
+        # boundary reasoning, while the exact supporting chunk remains hidden.
+        templates = [
+            "在心理支持实践中，{topic}主要解决什么问题？请概括适用条件、核心做法和一个常见误区。",
+            "如果来访者处于{topic}相关情境，依据资料应如何分步骤处理？请说明先后顺序及理由。",
+            "请比较资料中关于{topic}的建议与仅提供一般安慰的做法，指出至少两个关键差异。",
+            "关于{topic}，哪些情况仍可自助应对，哪些信号意味着需要转介或升级支持？",
+        ]
+        stop = {"的", "了", "和", "与", "在", "是", "或", "及", "等", "一个", "可以", "进行", "相关", "资料", "内容"}
         for i, chunk in enumerate(chunks[:300], 1):
-            excerpt = " ".join(chunk.original_text.split())[:80]
-            rows.append({"id": f"rag-{i:04d}", "question": f"资料中关于“{excerpt}”的内容是什么？", "expectedSources": [chunk.document_id], "expectedChunkIds": [chunk.chunk_id]})
+            words = [w.strip("，。；：、()（）[]{}\n\t ") for w in chunk.original_text.split()]
+            keywords = [w for w in words if len(w) >= 2 and w not in stop]
+            topic = "、".join(keywords[:3]) or "该心理健康主题"
+            question = templates[(i - 1) % len(templates)].format(topic=topic)
+            rows.append({"id": f"rag-{i:04d}", "question": question,
+                         "question_type": ["direct", "multi_condition", "multi_hop", "safety"][(i - 1) % 4],
+                         "difficulty": "hard", "answerable": True,
+                         "expectedSources": [chunk.document_id], "expectedChunkIds": [chunk.chunk_id]})
         Path(args.output).parent.mkdir(parents=True, exist_ok=True); Path(args.output).write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"); print(json.dumps({"generated": len(rows), "output": args.output}, ensure_ascii=False)); return 0
     docs = _documents(Path(args.documents))
     chunker = FixedChunker() if args.strategy == "fixed" else SemanticChunker()
