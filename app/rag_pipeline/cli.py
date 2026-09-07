@@ -15,6 +15,7 @@ from .indexing import IndexBuilder
 from .clients import DeepSeekClient
 from .dataset import DatasetGenerator
 from .experiment_runner import run_experiment
+from .query_processing import QueryPlanner
 from .models import ExperimentConfig
 from .models import SourceDocument
 
@@ -78,7 +79,13 @@ def main(argv=None) -> int:
             client = OfflineClient()
         else:
             client = SiliconFlowClient(settings.siliconflow_api_key, settings.siliconflow_base_url, settings.siliconflow_embedding_model, settings.siliconflow_rerank_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
-        result = run_experiment(config, Path(args.index), Path(args.dataset), client, Path(args.output_root)); print(json.dumps(result["metrics"], ensure_ascii=False)); return 0
+        planner = None
+        if config.query_rewrite_enabled or config.decomposition_enabled:
+            if not settings.deepseek_api_key:
+                raise SystemExit("DEEPSEEK_API_KEY is required for query rewrite/decomposition experiments")
+            ds = DeepSeekClient(settings.deepseek_api_key, settings.deepseek_base_url, settings.deepseek_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
+            planner = QueryPlanner(ds)
+        result = run_experiment(config, Path(args.index), Path(args.dataset), client, Path(args.output_root), planner); print(json.dumps(result["metrics"], ensure_ascii=False)); return 0
     if args.command == "make-300-dataset":
         from .indexing import load_chunks
         chunks = load_chunks(Path(args.chunks))

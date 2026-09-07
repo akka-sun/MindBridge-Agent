@@ -18,7 +18,7 @@ def load_index(path: Path):
     return JsonDenseIndex(chunks, vectors), Bm25Index(chunks)
 
 
-def run_experiment(config: ExperimentConfig, index_path: Path, dataset_path: Path, client: SiliconFlowClient, output_root: Path) -> dict:
+def run_experiment(config: ExperimentConfig, index_path: Path, dataset_path: Path, client: SiliconFlowClient, output_root: Path, query_planner=None) -> dict:
     dense, bm25 = load_index(index_path)
     cases = json.loads(dataset_path.read_text(encoding="utf-8"))
     questions = [case["question"] for case in cases]
@@ -31,7 +31,7 @@ def run_experiment(config: ExperimentConfig, index_path: Path, dataset_path: Pat
         def embed(self, texts):
             return [vectors[questions.index(text)] for text in texts]
 
-    retriever = HybridRetriever(dense, bm25, CachedEmbedder(), client if config.reranker_enabled else None)
+    retriever = HybridRetriever(dense, bm25, CachedEmbedder(), client if config.reranker_enabled else None, query_planner=query_planner)
     def evaluate_one(case):
         started = time.perf_counter()
         hits = retriever.retrieve(case["question"], top_k=config.final_top_k, dense_candidates=config.dense_candidates, bm25_candidates=config.bm25_candidates, rerank_candidates=config.rerank_candidates, rewrite=config.query_rewrite_enabled, decompose=config.decomposition_enabled, strict=config.strict_mode)
