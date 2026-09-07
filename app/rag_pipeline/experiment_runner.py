@@ -36,7 +36,8 @@ def run_experiment(config: ExperimentConfig, index_path: Path, dataset_path: Pat
         started = time.perf_counter()
         hits = retriever.retrieve(case["question"], top_k=config.final_top_k, dense_candidates=config.dense_candidates, bm25_candidates=config.bm25_candidates, rerank_candidates=config.rerank_candidates, rewrite=config.query_rewrite_enabled, decompose=config.decomposition_enabled, strict=config.strict_mode)
         elapsed = (time.perf_counter() - started) * 1000
-        ids = [item.document_id for item in hits]
+        # Compare predictions with expectedChunkIds, never document IDs.
+        ids = [item.chunk_id for item in hits]
         # Retrieval quality is measured at chunk granularity.  Keep source-level
         # fields only for analysis; they must not make a neighboring chunk count
         # as a hit.
