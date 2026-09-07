@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .clients import JsonFileCache, SiliconFlowClient
@@ -31,15 +32,19 @@ def run_experiment(config: ExperimentConfig, index_path: Path, dataset_path: Pat
             return [vectors[questions.index(text)] for text in texts]
 
     retriever = HybridRetriever(dense, bm25, CachedEmbedder(), client if config.reranker_enabled else None)
-    rows, predicted, gold = [], [], []
-    for case in cases:
+    def evaluate_one(case):
         started = time.perf_counter()
         hits = retriever.retrieve(case["question"], top_k=config.final_top_k, dense_candidates=config.dense_candidates, bm25_candidates=config.bm25_candidates, rerank_candidates=config.rerank_candidates, rewrite=config.query_rewrite_enabled, decompose=config.decomposition_enabled, strict=config.strict_mode)
         elapsed = (time.perf_counter() - started) * 1000
         ids = [item.document_id for item in hits]
         expected = set(case.get("expectedSources", []))
-        predicted.append(ids); gold.append(expected)
-        rows.append({"id": case["id"], "question": case["question"], "retrieved": ids, "latency_ms": elapsed, "hit": bool(set(ids) & expected)})
+        return {"id": case["id"], "question": case["question"], "retrieved": ids, "latency_ms": elapsed, "hit": bool(set(ids) & expected)}, ids, expected
+    workers = min(8, max(1, int(__import__("os").environ.get("RAG_EXPERIMENT_WORKERS", "8"))))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        completed = list(pool.map(evaluate_one, cases))
+    rows = [item[0] for item in completed]
+    predicted = [item[1] for item in completed]
+    gold = [item[2] for item in completed]
     metrics = compute_retrieval_metrics(predicted, gold)
     result = {"experiment_id": config.experiment_id, "index_strategy": config.index_strategy, "total_cases": len(cases), "metrics": metrics, "results": rows}
     destination = output_root / config.experiment_id
