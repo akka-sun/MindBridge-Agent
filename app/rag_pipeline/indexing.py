@@ -33,6 +33,24 @@ class JsonDenseIndex:
         return [(chunk, cosine(query_vector, vector)) for chunk, vector in ranked[:top_k]]
 
 
+class IndexBuilder:
+    def __init__(self, embedder, root: Path):
+        self.embedder, self.root = embedder, Path(root)
+
+    def build(self, chunks_path: Path, strategy: str, batch_size: int = 32) -> dict:
+        chunks = load_chunks(chunks_path)
+        vectors = []
+        for start in range(0, len(chunks), batch_size):
+            vectors.extend(self.embedder.embed([c.retrieval_text for c in chunks[start:start + batch_size]]))
+        version = build_version(chunks, strategy, getattr(self.embedder, "embedding_model", "unknown"))
+        destination = self.root / strategy / version
+        destination.mkdir(parents=True, exist_ok=True)
+        save_chunks(chunks, destination / "chunks.jsonl")
+        (destination / "vectors.json").write_text(json.dumps(vectors), encoding="utf-8")
+        (destination / "manifest.json").write_text(json.dumps({"version": version, "strategy": strategy, "chunks": len(chunks), "embedding_model": getattr(self.embedder, "embedding_model", "unknown")}, indent=2), encoding="utf-8")
+        return {"version": version, "chunks": len(chunks), "path": str(destination)}
+
+
 def save_chunks(chunks: list[KnowledgeChunkRecord], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(c.model_dump_json() for c in chunks) + ("\n" if chunks else ""), encoding="utf-8")
@@ -45,4 +63,3 @@ def load_chunks(path: Path) -> list[KnowledgeChunkRecord]:
 def build_version(chunks: list[KnowledgeChunkRecord], strategy: str, model: str) -> str:
     payload = "".join(c.chunk_id + c.retrieval_text for c in chunks) + strategy + model
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
-

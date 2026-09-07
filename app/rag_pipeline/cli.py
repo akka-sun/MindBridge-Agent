@@ -9,6 +9,8 @@ from .config import get_rag_settings
 from .corpus import CorpusBuilder
 from .indexing import save_chunks
 from .contextualization import Contextualizer
+from .clients import JsonFileCache, SiliconFlowClient
+from .indexing import IndexBuilder
 from .models import SourceDocument
 
 
@@ -28,6 +30,9 @@ def main(argv=None) -> int:
     chunks.add_argument("--documents", default="data/rag-experiments/processed/documents.jsonl")
     chunks.add_argument("--strategy", choices=["fixed", "contextual"], required=True)
     chunks.add_argument("--output", required=True)
+    index = sub.add_parser("build-index")
+    index.add_argument("--chunks", required=True)
+    index.add_argument("--strategy", choices=["fixed", "contextual"], required=True)
     args = parser.parse_args(argv)
     if args.command == "validate-sources":
         data = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
@@ -37,6 +42,9 @@ def main(argv=None) -> int:
     settings = get_rag_settings()
     if args.command == "build-corpus":
         result = CorpusBuilder(settings.project_root).build(Path(args.manifest), Path(args.output)); print(json.dumps(result, ensure_ascii=False)); return 0 if not result["errors"] else 1
+    if args.command == "build-index":
+        client = SiliconFlowClient(settings.siliconflow_api_key, settings.siliconflow_base_url, settings.siliconflow_embedding_model, settings.siliconflow_rerank_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
+        result = IndexBuilder(client, settings.experiment_root / "indices").build(Path(args.chunks), args.strategy, settings.rag_embedding_batch_size); print(json.dumps(result, ensure_ascii=False)); return 0
     docs = _documents(Path(args.documents))
     chunker = FixedChunker() if args.strategy == "fixed" else SemanticChunker()
     rows = []
