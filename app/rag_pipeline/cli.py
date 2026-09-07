@@ -11,6 +11,8 @@ from .indexing import save_chunks
 from .contextualization import Contextualizer
 from .clients import JsonFileCache, SiliconFlowClient
 from .indexing import IndexBuilder
+from .clients import DeepSeekClient
+from .dataset import DatasetGenerator
 from .models import SourceDocument
 
 
@@ -33,6 +35,10 @@ def main(argv=None) -> int:
     index = sub.add_parser("build-index")
     index.add_argument("--chunks", required=True)
     index.add_argument("--strategy", choices=["fixed", "contextual"], required=True)
+    dataset = sub.add_parser("generate-dataset")
+    dataset.add_argument("--evidence", required=True)
+    dataset.add_argument("--output", required=True)
+    dataset.add_argument("--prompt", default="generate_answerable_questions")
     args = parser.parse_args(argv)
     if args.command == "validate-sources":
         data = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
@@ -45,6 +51,12 @@ def main(argv=None) -> int:
     if args.command == "build-index":
         client = SiliconFlowClient(settings.siliconflow_api_key, settings.siliconflow_base_url, settings.siliconflow_embedding_model, settings.siliconflow_rerank_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
         result = IndexBuilder(client, settings.experiment_root / "indices").build(Path(args.chunks), args.strategy, settings.rag_embedding_batch_size); print(json.dumps(result, ensure_ascii=False)); return 0
+    if args.command == "generate-dataset":
+        if not settings.deepseek_api_key:
+            raise SystemExit("DEEPSEEK_API_KEY is required for generate-dataset")
+        client = DeepSeekClient(settings.deepseek_api_key, settings.deepseek_base_url, settings.deepseek_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
+        rows = DatasetGenerator(client).generate_batch(args.prompt, Path(args.evidence).read_text(encoding="utf-8"), {"requested": 20})
+        Path(args.output).parent.mkdir(parents=True, exist_ok=True); Path(args.output).write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"); print(json.dumps({"generated": len(rows), "output": args.output}, ensure_ascii=False)); return 0
     docs = _documents(Path(args.documents))
     chunker = FixedChunker() if args.strategy == "fixed" else SemanticChunker()
     rows = []
