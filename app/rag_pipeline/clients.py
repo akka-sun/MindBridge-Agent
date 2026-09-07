@@ -71,7 +71,8 @@ class DeepSeekClient(_BaseClient):
 
     def generate_json(self, prompt_id: str, prompt: str, schema: dict, parameters: dict | None = None) -> dict:
         parameters = parameters or {}
-        payload = {"model": self.model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}, **parameters}
+        structured_prompt = prompt if "json" in prompt.lower() else prompt + "\n请严格输出有效JSON。"
+        payload = {"model": self.model, "messages": [{"role": "user", "content": structured_prompt}], "response_format": {"type": "json_object"}, **parameters}
         cache_key = self.cache.key({"provider": "deepseek", "prompt_id": prompt_id, "payload": payload, "schema": schema}) if self.cache else None
         if cache_key and (value := self.cache.get(cache_key)) is not None:
             return value
@@ -118,4 +119,3 @@ class SiliconFlowClient(_BaseClient):
         if not isinstance(rows, list):
             raise ApiError("SiliconFlow rerank response is malformed")
         return rows
-

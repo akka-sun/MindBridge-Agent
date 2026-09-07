@@ -63,7 +63,10 @@ def main(argv=None) -> int:
     for doc in docs:
         doc_chunks = chunker.chunk(doc)
         if args.strategy == "contextual":
-            doc_chunks = Contextualizer().contextualize(doc_chunks, doc.title)
+            ds = None
+            if settings.deepseek_api_key:
+                ds = DeepSeekClient(settings.deepseek_api_key, settings.deepseek_base_url, settings.deepseek_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
+            doc_chunks = Contextualizer(ds).contextualize(doc_chunks, doc.title)
         rows.extend(doc_chunks)
     save_chunks(rows, Path(args.output)); print(json.dumps({"strategy": args.strategy, "chunks": len(rows), "output": args.output}, ensure_ascii=False)); return 0
 
