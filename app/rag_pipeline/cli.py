@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from .chunking import FixedChunker, SemanticChunker
@@ -13,6 +14,8 @@ from .clients import JsonFileCache, SiliconFlowClient
 from .indexing import IndexBuilder
 from .clients import DeepSeekClient
 from .dataset import DatasetGenerator
+from .experiment_runner import run_experiment
+from .models import ExperimentConfig
 from .models import SourceDocument
 
 
@@ -39,6 +42,14 @@ def main(argv=None) -> int:
     dataset.add_argument("--evidence", required=True)
     dataset.add_argument("--output", required=True)
     dataset.add_argument("--prompt", default="generate_answerable_questions")
+    exp = sub.add_parser("run-experiment")
+    exp.add_argument("--config", required=True)
+    exp.add_argument("--index", required=True)
+    exp.add_argument("--dataset", default="app/rag_eval/mindbridge-rag-eval.json")
+    exp.add_argument("--output-root", default="data/rag-experiments/runs")
+    seed = sub.add_parser("make-300-dataset")
+    seed.add_argument("--chunks", required=True)
+    seed.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     if args.command == "validate-sources":
         data = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
@@ -56,6 +67,27 @@ def main(argv=None) -> int:
             raise SystemExit("DEEPSEEK_API_KEY is required for generate-dataset")
         client = DeepSeekClient(settings.deepseek_api_key, settings.deepseek_base_url, settings.deepseek_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
         rows = DatasetGenerator(client).generate_batch(args.prompt, Path(args.evidence).read_text(encoding="utf-8"), {"requested": 20})
+        Path(args.output).parent.mkdir(parents=True, exist_ok=True); Path(args.output).write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"); print(json.dumps({"generated": len(rows), "output": args.output}, ensure_ascii=False)); return 0
+    if args.command == "run-experiment":
+        config = ExperimentConfig.model_validate(json.loads(Path(args.config).read_text(encoding="utf-8")))
+        if os.environ.get("RAG_OFFLINE") == "1":
+            class OfflineClient:
+                embedding_model = "offline-bm25"
+                def embed(self, texts): return [[0.0] for _ in texts]
+                def rerank(self, query, documents, top_n): return [{"index": i, "relevance_score": 0.0} for i in range(min(top_n, len(documents)))]
+            client = OfflineClient()
+        else:
+            client = SiliconFlowClient(settings.siliconflow_api_key, settings.siliconflow_base_url, settings.siliconflow_embedding_model, settings.siliconflow_rerank_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
+        result = run_experiment(config, Path(args.index), Path(args.dataset), client, Path(args.output_root)); print(json.dumps(result["metrics"], ensure_ascii=False)); return 0
+    if args.command == "make-300-dataset":
+        from .indexing import load_chunks
+        chunks = load_chunks(Path(args.chunks))
+        if len(chunks) < 300:
+            raise SystemExit(f"need at least 300 chunks, got {len(chunks)}")
+        rows = []
+        for i, chunk in enumerate(chunks[:300], 1):
+            excerpt = " ".join(chunk.original_text.split())[:80]
+            rows.append({"id": f"rag-{i:04d}", "question": f"资料中关于“{excerpt}”的内容是什么？", "expectedSources": [chunk.document_id], "expectedChunkIds": [chunk.chunk_id]})
         Path(args.output).parent.mkdir(parents=True, exist_ok=True); Path(args.output).write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"); print(json.dumps({"generated": len(rows), "output": args.output}, ensure_ascii=False)); return 0
     docs = _documents(Path(args.documents))
     chunker = FixedChunker() if args.strategy == "fixed" else SemanticChunker()
