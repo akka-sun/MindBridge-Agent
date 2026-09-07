@@ -6,6 +6,7 @@ data/*.db
 data/*.sqlite
 data/*.xlsx
 data/chroma/
+data/rag-experiments/
 target/
 .DS_Store
 .pytest_cache/

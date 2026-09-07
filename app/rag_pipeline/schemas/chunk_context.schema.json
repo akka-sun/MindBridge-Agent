@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "additionalProperties": false,
+  "required": ["context", "resolved_references", "added_claims", "warnings"],
+  "properties": {
+    "context": {"type": "string", "minLength": 50, "maxLength": 240},
+    "resolved_references": {"type": "array", "items": {"type": "string"}},
+    "added_claims": {"const": false},
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  }
+}

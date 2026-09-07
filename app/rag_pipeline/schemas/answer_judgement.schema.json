@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "additionalProperties": false,
+  "required": ["claims", "aggregate"],
+  "properties": {
+    "claims": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["claim", "supported", "contradicted", "unsupported"], "properties": {"claim": {"type": "string"}, "supported": {"type": "boolean"}, "contradicted": {"type": "boolean"}, "unsupported": {"type": "boolean"}}}},
+    "aggregate": {"type": "object", "additionalProperties": false, "required": ["faithfulness", "coverage", "citation_accuracy", "safety_pass"], "properties": {"faithfulness": {"type": "number", "minimum": 0, "maximum": 1}, "coverage": {"type": "number", "minimum": 0, "maximum": 1}, "citation_accuracy": {"type": "number", "minimum": 0, "maximum": 1}, "safety_pass": {"type": "boolean"}}}
+  }
+}
