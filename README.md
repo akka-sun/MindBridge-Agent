@@ -111,6 +111,8 @@ python -m app.rag_pipeline.cli build-chunks --strategy contextual \
 
 历史实验包含离线配置、不同问题集及查询规划降级情况，暂不作为严格的同条件提升结论。比较切分策略时，应使用相同问题和证据，并分别映射到各索引的 gold chunk；仅有配置或指标文件不能证明查询改写、拆分实际生效。
 
+已移除旧版 `make-300-dataset` 模板出题入口。评测问题需逐题检查语义、答案与证据支持，不能通过模板长度或统一标记 `hard` 认定难度。已有本地数据和实验记录保留，便于复核。
+
 ## 联合分类 SFT
 
 训练与评测入口位于 `SFT/`，支持问题生成、联合标注、人工审核、数据划分、QLoRA 训练与模型对比。Linux 环境配置和命令见 [SFT 运行指南](SFT/README.md)，实施方案见 [SFT 实施文档](SFT/IMPLEMENTATION_PLAN.md)。

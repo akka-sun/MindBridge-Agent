@@ -48,9 +48,6 @@ def main(argv=None) -> int:
     exp.add_argument("--index", required=True)
     exp.add_argument("--dataset", default="app/rag_eval/mindbridge-rag-eval.json")
     exp.add_argument("--output-root", default="data/rag-experiments/runs")
-    seed = sub.add_parser("make-300-dataset")
-    seed.add_argument("--chunks", required=True)
-    seed.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     if args.command == "validate-sources":
         data = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
@@ -86,32 +83,6 @@ def main(argv=None) -> int:
             ds = DeepSeekClient(settings.deepseek_api_key, settings.deepseek_base_url, settings.deepseek_model, cache=JsonFileCache(settings.experiment_root / "cache"), timeout=settings.rag_request_timeout_seconds, max_retries=settings.rag_request_max_retries)
             planner = QueryPlanner(ds)
         result = run_experiment(config, Path(args.index), Path(args.dataset), client, Path(args.output_root), planner); print(json.dumps(result["metrics"], ensure_ascii=False)); return 0
-    if args.command == "make-300-dataset":
-        from .indexing import load_chunks
-        chunks = load_chunks(Path(args.chunks))
-        if len(chunks) < 300:
-            raise SystemExit(f"need at least 300 chunks, got {len(chunks)}")
-        rows = []
-        # Do not copy source text into questions: that creates lexical leakage.
-        # Questions deliberately require abstraction, application, comparison or
-        # boundary reasoning, while the exact supporting chunk remains hidden.
-        templates = [
-            "在心理支持实践中，{topic}主要解决什么问题？请概括适用条件、核心做法和一个常见误区。",
-            "如果来访者处于{topic}相关情境，依据资料应如何分步骤处理？请说明先后顺序及理由。",
-            "请比较资料中关于{topic}的建议与仅提供一般安慰的做法，指出至少两个关键差异。",
-            "关于{topic}，哪些情况仍可自助应对，哪些信号意味着需要转介或升级支持？",
-        ]
-        stop = {"的", "了", "和", "与", "在", "是", "或", "及", "等", "一个", "可以", "进行", "相关", "资料", "内容"}
-        for i, chunk in enumerate(chunks[:300], 1):
-            words = [w.strip("，。；：、()（）[]{}\n\t ") for w in chunk.original_text.split()]
-            keywords = [w for w in words if len(w) >= 2 and w not in stop]
-            topic = "、".join(keywords[:3]) or "该心理健康主题"
-            question = templates[(i - 1) % len(templates)].format(topic=topic)
-            rows.append({"id": f"rag-{i:04d}", "question": question,
-                         "question_type": ["direct", "multi_condition", "multi_hop", "safety"][(i - 1) % 4],
-                         "difficulty": "hard", "answerable": True,
-                         "expectedSources": [chunk.document_id], "expectedChunkIds": [chunk.chunk_id]})
-        Path(args.output).parent.mkdir(parents=True, exist_ok=True); Path(args.output).write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"); print(json.dumps({"generated": len(rows), "output": args.output}, ensure_ascii=False)); return 0
     docs = _documents(Path(args.documents))
     chunker = FixedChunker() if args.strategy == "fixed" else SemanticChunker()
     rows = []
