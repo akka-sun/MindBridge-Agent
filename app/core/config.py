@@ -10,10 +10,7 @@ class Settings(BaseSettings):
     ai_temperature: float = 0.35
     ai_max_tokens: int = 512
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "mindbridge-qwen2.5-7b-ft:latest"
-    finetuned_model_name: str = "mindbridge-qwen2.5-7b-ft:latest"
-    finetuned_model_dir: str = "models/mindbridge-qwen2.5-7b-ft"
-    finetuned_model_file: str = "mindbridge-qwen2.5-7b-ft-q4_k_m.gguf"
+    ollama_model: str = "qwen2.5:7b"
     openai_base_url: str = "https://api.openai.com/v1"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"

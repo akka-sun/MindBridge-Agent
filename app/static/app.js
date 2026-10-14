@@ -81,7 +81,7 @@ async function loadAgentStatus() {
 }
 
 function displayModel(model) {
-  return (model || "").includes("mindbridge-qwen2.5-7b-ft") ? "微调 Qwen2.5-7B" : model;
+  return model || "未配置模型";
 }
 
 async function login(event) {

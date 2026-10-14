@@ -12,7 +12,6 @@ from app.models.entities import UserAccount
 from app.schemas.dtos import KnowledgeIngestRequest, KnowledgeIngestResponse, ChatRequest, authority
 from app.services.chat import ChatService
 from app.services.knowledge import KnowledgeService
-from app.services.model_assets import finetuned_model_status
 from app.services.report import ReportService
 
 router = APIRouter()
@@ -55,7 +54,6 @@ def agent_status(user: Annotated[UserAccount, Depends(current_user)]):
         "model": model,
         "realModelEnabled": provider in {"ollama", "openai"},
         "agentFramework": agent_framework_status(settings),
-        "finetunedModel": finetuned_model_status(settings),
         "agents": [
             {"name": "MemoryAgent", "status": "READY", "description": "短期上下文与长期记忆摘要"},
             {"name": "SupervisorAgent", "status": "READY", "description": "意图识别与路由"},

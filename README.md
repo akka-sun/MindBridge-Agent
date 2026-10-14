@@ -75,6 +75,8 @@ docker compose up -d --build
 
 应用端口为 `8080`，MySQL 和 Redis 的宿主机端口分别为 `13306`、`16379`。默认聊天模型通过宿主机 Ollama 提供，需准备模型或配置其他 Provider；仅验证流程可使用 `AI_PROVIDER=mock`。
 
+Ollama 默认模型为 `qwen2.5:7b`，先在宿主机执行 `ollama pull qwen2.5:7b`；使用其他模型时设置 `OLLAMA_MODEL`。SFT 训练输出由 `SFT/` 管理，不依赖旧版 GGUF 目录。
+
 本地启动：
 
 ```bash
